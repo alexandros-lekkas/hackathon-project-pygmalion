@@ -73,11 +73,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { message, history } = ChatRequestSchema.parse(body);
 
+    // Debug: log the received history
+    console.log("Received history:", history);
+    console.log("Current message:", message);
+
     // Build conversation context for the agent
     const conversationHistory = [
       ...history,
       { role: "user" as const, content: message },
     ];
+
+    console.log("Full conversation history:", conversationHistory);
 
     // Convert to the format expected by the agent
     const messages = conversationHistory.map((msg) => ({
@@ -85,12 +91,21 @@ export async function POST(request: NextRequest) {
       content: msg.content,
     }));
 
-    // Run the agent with the conversation context
-    const result = await run(mayaAgent, message, {
-      context: {
-        history: conversationHistory,
-      },
-    });
+    // Build a message that includes conversation history
+    let contextMessage = message;
+    if (conversationHistory.length > 1) {
+      const historyText = conversationHistory
+        .slice(0, -1) // Exclude the current message
+        .map(msg => msg.content)
+        .join('\n');
+      
+      contextMessage = `Here's our conversation so far:\n${historyText}\n\nNow you said: ${message}`;
+    }
+
+    console.log('Context message being sent to agent:', contextMessage);
+
+    // Run the agent with the context message
+    const result = await run(mayaAgent, contextMessage);
 
     // Debug: log the result structure
     console.log("Agent result:", result);
