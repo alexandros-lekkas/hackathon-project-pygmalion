@@ -24,6 +24,7 @@ export interface UseChatReturn {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   sendMessage: () => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
+  clearContext: () => void;
   // Memory processing state
   isProcessingMemory: boolean;
   memoryStreamingText: string;
@@ -351,6 +352,21 @@ export const useChat = (): UseChatReturn => {
       sendMessage();
     }
   }, [sendMessage]);
+  
+  // Clear all context - messages, memory steps, and memories
+  const clearContext = useCallback(() => {
+    // Reset to just the initial greeting
+    setMessages([{
+      id: "1",
+      role: "assistant",
+      content: "Hi",
+      timestamp: new Date(),
+    }]);
+    setMemorySteps([]);
+    setMemories([]);
+    setMemoryStreamingText("");
+    processedSentences.current.clear();
+  }, []);
 
   return {
     messages,
@@ -362,6 +378,7 @@ export const useChat = (): UseChatReturn => {
     audioRef,
     sendMessage,
     handleKeyPress,
+    clearContext,
     isProcessingMemory,
     memoryStreamingText,
     memorySteps,

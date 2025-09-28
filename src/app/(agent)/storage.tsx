@@ -5,20 +5,35 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useChatContext } from "@/lib/providers/chat-provider";
 
+import { Button } from "@/components/ui/button";
+
 export default function Storage() {
   const {
     memories,
     isProcessingMemory: isProcessing,
     memoryStreamingText: streamingText,
     memorySteps,
+    clearContext,
   } = useChatContext();
 
   return (
     <MemoryColumn isProcessing={isProcessing}>
       <div className="flex flex-col h-full">
         <div className="flex-shrink-0 mb-4">
-          <h2 className="text-lg font-semibold">Storage</h2>
-          <p className="text-sm text-muted-foreground">AI's memory storage</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold">Storage</h2>
+              <p className="text-sm text-muted-foreground">AI's memory storage</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={clearContext}
+              className="text-xs"
+            >
+              Clear All
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0">
