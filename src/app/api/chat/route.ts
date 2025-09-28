@@ -12,8 +12,6 @@ export async function POST(request: NextRequest) {
     // Process the chat request using the service
     const response = await processChatRequest(chatRequest);
 
-    //Basically, I want you to update the memories but the API should continue running and not await the updateMemories function
-
     return NextResponse.json(response);
   } catch (error) {
     console.error("Chat API error:", error);
