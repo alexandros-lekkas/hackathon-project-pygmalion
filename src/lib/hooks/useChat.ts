@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { searchMemoriesByRelevance } from "@/lib/memory/search";
 
 export interface Message {
   id: string;
@@ -30,6 +31,10 @@ export interface UseChatReturn {
   memoryStreamingText: string;
   memorySteps: MemoryStep[]; // History of all memory processing steps
   memories: Array<{ title: string; content: string; importance: number }>;
+  // Memory search state
+  isSearchingMemories: boolean;
+  searchQuery: string;
+  searchResults: Array<{ title: string; content: string; importance: number; score?: number }>;
 }
 
 export const useChat = (): UseChatReturn => {
@@ -53,12 +58,37 @@ export const useChat = (): UseChatReturn => {
   const [memorySteps, setMemorySteps] = useState<MemoryStep[]>([]);
   const [memories, setMemories] = useState<Array<{ title: string; content: string; importance: number }>>([]);
   
+  // Memory search state
+  const [isSearchingMemories, setIsSearchingMemories] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{ title: string; content: string; importance: number; score?: number }>>([]);
+  
   // Keep track of processed sentences to avoid duplicates
   const processedSentences = useRef(new Set<string>());
 
   // Set client state to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
+    
+    // Fetch memories from Supabase when the component mounts
+    const fetchMemories = async () => {
+      try {
+        const response = await fetch('/api/memory/fetch', {
+          method: 'GET',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.memories && Array.isArray(data.memories)) {
+            setMemories(data.memories);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch memories:', error);
+      }
+    };
+    
+    fetchMemories();
   }, []);
 
   // Auto-scroll to bottom when new messages are added with smooth scrolling
@@ -262,6 +292,8 @@ export const useChat = (): UseChatReturn => {
     }
   }, []);
 
+  // Memory context injection
+
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
 
@@ -298,13 +330,47 @@ export const useChat = (): UseChatReturn => {
     }
 
     try {
+      // Start memory search process with visual feedback
+      setIsSearchingMemories(true);
+      setSearchQuery(userMessage.content);
+      setSearchResults([]);
+      
+      // Simulate a short delay to show the search process
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Find relevant memories to inject as context
+      const relevantMemories = searchMemoriesByRelevance(memories, userMessage.content);
+      
+      // Update search results for display
+      setSearchResults(relevantMemories.map(memory => ({
+        ...memory,
+        score: Math.round(Math.random() * 100) // Just for visual display, replace with actual scores if available
+      })));
+      
+      // Create context string from relevant memories
+      let contextMessage = userMessage.content;
+      if (relevantMemories.length > 0) {
+        const contextString = relevantMemories
+          .map(memory => `Memory: ${memory.title}\nContent: ${memory.content}\nImportance: ${memory.importance}/10`)
+          .join('\n\n');
+          
+        // Inject the context before the user's message
+        contextMessage = `ADDITIONAL CONTEXT:\n${contextString}\n\nUSER MESSAGE:\n${userMessage.content}`;
+        
+        // Log the injected context for debugging
+        console.log('Injecting memory context:', relevantMemories);
+        
+        // Keep the search results visible for a moment
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: contextMessage, // Use the context-enriched message
           history: messages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -343,6 +409,10 @@ export const useChat = (): UseChatReturn => {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      // Reset memory search state after a delay to keep results visible briefly
+      setTimeout(() => {
+        setIsSearchingMemories(false);
+      }, 2000);
     }
   }, [input, isLoading, messages, generateTTS, playAudio, processMemory]);
 
@@ -366,6 +436,11 @@ export const useChat = (): UseChatReturn => {
     setMemories([]);
     setMemoryStreamingText("");
     processedSentences.current.clear();
+    
+    // Clear search state
+    setIsSearchingMemories(false);
+    setSearchQuery("");
+    setSearchResults([]);
   }, []);
 
   return {
@@ -383,5 +458,8 @@ export const useChat = (): UseChatReturn => {
     memoryStreamingText,
     memorySteps,
     memories,
+    isSearchingMemories,
+    searchQuery,
+    searchResults,
   };
 };
