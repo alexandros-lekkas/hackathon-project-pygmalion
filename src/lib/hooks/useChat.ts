@@ -131,8 +131,8 @@ export const useChat = (): UseChatReturn => {
   const processMemory = useCallback(async (message: string, history: Message[]) => {
     setIsProcessingMemory(true);
     setMemoryStreamingText("");
-    setMemorySteps([]);
     processedSentences.current.clear(); // Clear processed sentences for new memory processing
+    // Don't reset memory steps between messages
 
     try {
       const response = await fetch('/api/memory', {
