@@ -294,61 +294,59 @@ const Call = ({ onLeave }: { onLeave: () => void }) => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4">
-      <Card className="w-80">
-        <CardHeader>
-          <CardTitle>Video Call</CardTitle>
-          <CardDescription>
-            {remoteParticipantIds.length > 0 ? "Connected" : "Waiting for connection..."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="relative">
-            {remoteParticipantIds.length > 0 ? (
-              <Video id={remoteParticipantIds[0]} />
-            ) : (
-              <div className="relative flex h-40 items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="animate-spin"
-                  aria-label="Loading spinner"
-                >
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                  <title>Loading spinner</title>
-                </svg>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleMicrophone}
-              className="flex-1"
-            >
-              {!isMicEnabled ? "Mic Off" : "Mic On"}
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onLeave}
-              className="flex-1"
-            >
-              Leave
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>AI Video Call</CardTitle>
+        <CardDescription>
+          {remoteParticipantIds.length > 0 ? "Connected" : "Waiting for connection..."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="relative">
+          {remoteParticipantIds.length > 0 ? (
+            <Video id={remoteParticipantIds[0]} />
+          ) : (
+            <div className="relative flex h-40 items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="animate-spin"
+                aria-label="Loading spinner"
+              >
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                <title>Loading spinner</title>
+              </svg>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleMicrophone}
+            className="flex-1"
+          >
+            {!isMicEnabled ? "Mic Off" : "Mic On"}
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onLeave}
+            className="flex-1"
+          >
+            Leave
+          </Button>
+        </div>
+      </CardContent>
       <DailyAudio />
-    </div>
+    </Card>
   );
 };
 
@@ -417,7 +415,7 @@ function App() {
 
   return (
     <main className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-2xl space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>AI Video Call with Chroma Key</CardTitle>
@@ -449,9 +447,13 @@ function App() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {conversation && <Call onLeave={handleLeaveCall} />}
+        {conversation && (
+          <div className="flex justify-center">
+            <Call onLeave={handleLeaveCall} />
+          </div>
+        )}
+      </div>
     </main>
   );
 }
