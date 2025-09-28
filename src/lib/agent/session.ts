@@ -19,6 +19,13 @@ export class AgentSessionManager {
   }
 
   async createSession(ctx: JobContext): Promise<voice.AgentSession> {
+    console.log('🤖 Creating voice AI session...');
+    console.log('📋 Configuration:', {
+      openaiModel: this.config.openai.model,
+      deepgramModel: this.config.deepgram.model,
+      elevenlabsVoiceId: this.config.elevenlabs.voiceId,
+    });
+
     // Create the voice AI pipeline
     this.session = new voice.AgentSession({
       // Large Language Model (LLM) - the agent's brain
@@ -44,6 +51,8 @@ export class AgentSessionManager {
       vad: ctx.proc.userData.vad as silero.VAD,
     });
 
+    console.log('✅ Voice AI session created successfully');
+
     // Set up metrics collection
     this.setupMetrics();
 
@@ -53,7 +62,9 @@ export class AgentSessionManager {
   private setupMetrics(): void {
     if (!this.session) return;
 
+    console.log('📊 Setting up metrics collection...');
     this.session.on(voice.AgentSessionEventTypes.MetricsCollected, (ev) => {
+      console.log('📈 Metrics collected:', ev.metrics);
       metrics.logMetrics(ev.metrics);
       this.usageCollector.collect(ev.metrics);
     });
@@ -63,6 +74,9 @@ export class AgentSessionManager {
     if (!this.session) {
       throw new Error('Session not created. Call createSession first.');
     }
+
+    console.log('🚀 Starting voice AI session...');
+    console.log('🎯 Room:', ctx.room.name);
 
     // Start the session with noise cancellation
     await this.session.start({
@@ -74,8 +88,12 @@ export class AgentSessionManager {
       },
     });
 
+    console.log('✅ Voice AI session started successfully');
+
     // Connect to the room
+    console.log('🔗 Connecting to room...');
     await ctx.connect();
+    console.log('✅ Connected to room');
   }
 
   async generateGreeting(): Promise<void> {
@@ -83,9 +101,11 @@ export class AgentSessionManager {
       throw new Error('Session not started.');
     }
 
+    console.log('👋 Generating greeting message...');
     await this.session.generate_reply(
       "Greet the user and offer your assistance. Be friendly and ask how you can help them today."
     );
+    console.log('✅ Greeting generated and sent');
   }
 
   async logUsage(): Promise<void> {
