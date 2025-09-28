@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import LogViewer from "./LogViewer";
 
 interface VoiceAgentUIProps {
   config: LiveKitConfig;
@@ -49,8 +50,10 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Voice AI Agent</CardTitle>
           <CardDescription>
@@ -182,6 +185,10 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Log Viewer */}
+      <LogViewer />
+      </div>
     </div>
   );
 }

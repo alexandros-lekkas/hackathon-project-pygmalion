@@ -15,7 +15,7 @@ export const getWeatherTool = llm.tool({
   If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.`,
   parameters: weatherToolSchema,
   execute: async ({ location }) => {
-    console.log(`Looking up weather for ${location}`);
+    console.log(`🌤️ Weather tool called for location: ${location}`);
     
     // Mock weather data - replace with actual weather API call
     const mockWeatherData = {
@@ -29,9 +29,11 @@ export const getWeatherTool = llm.tool({
     const weather = mockWeatherData[normalizedLocation as keyof typeof mockWeatherData];
     
     if (weather) {
+      console.log(`✅ Weather found for ${location}: ${weather}`);
       return `The weather in ${location} is ${weather}.`;
     }
     
+    console.log(`❌ Weather not found for ${location}`);
     return `Weather information for ${location} is currently unavailable.`;
   },
 });
@@ -49,7 +51,7 @@ export const getTimeTool = llm.tool({
   description: 'Get the current time in a specific timezone or local time.',
   parameters: timeToolSchema,
   execute: async ({ timezone }) => {
-    console.log(`Getting time for timezone: ${timezone || 'local'}`);
+    console.log(`🕐 Time tool called for timezone: ${timezone || 'local'}`);
     
     const now = new Date();
     let timeString: string;
@@ -57,11 +59,14 @@ export const getTimeTool = llm.tool({
     if (timezone) {
       try {
         timeString = now.toLocaleString('en-US', { timeZone: timezone });
+        console.log(`✅ Time retrieved for ${timezone}: ${timeString}`);
       } catch (error) {
+        console.log(`❌ Invalid timezone: ${timezone}`);
         return `Invalid timezone: ${timezone}`;
       }
     } else {
       timeString = now.toLocaleString();
+      console.log(`✅ Local time retrieved: ${timeString}`);
     }
     
     return `The current time is ${timeString}`;
@@ -80,19 +85,24 @@ export const calculatorTool = llm.tool({
   description: 'Perform basic mathematical calculations safely.',
   parameters: calculatorToolSchema,
   execute: async ({ expression }) => {
-    console.log(`Calculating: ${expression}`);
+    console.log(`🧮 Calculator tool called with expression: ${expression}`);
     
     try {
       // Simple safe evaluation - only allow basic math operations
       const sanitized = expression.replace(/[^0-9+\-*/().\s]/g, '');
+      console.log(`🔍 Sanitized expression: ${sanitized}`);
+      
       const result = Function(`"use strict"; return (${sanitized})`)();
       
       if (typeof result === 'number' && !isNaN(result)) {
+        console.log(`✅ Calculation successful: ${expression} = ${result}`);
         return `The result of ${expression} is ${result}`;
       } else {
+        console.log(`❌ Invalid mathematical expression: ${expression}`);
         return `Invalid mathematical expression: ${expression}`;
       }
     } catch (error) {
+      console.log(`❌ Calculation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return `Error calculating ${expression}: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   },

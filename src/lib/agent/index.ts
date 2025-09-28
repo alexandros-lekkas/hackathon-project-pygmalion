@@ -7,13 +7,20 @@ import { AgentPrewarm } from './prewarm';
 // Load and validate configuration
 let config: ReturnType<typeof getAgentConfig>;
 try {
+  console.log('🔧 Loading agent configuration...');
   config = getAgentConfig();
   if (!validateConfig(config)) {
     throw new Error('Invalid agent configuration');
   }
-  console.log('Agent configuration loaded successfully');
+  console.log('✅ Agent configuration loaded successfully');
+  console.log('📋 Config summary:', {
+    livekitUrl: config.livekit.url,
+    openaiModel: config.openai.model,
+    deepgramModel: config.deepgram.model,
+    elevenlabsVoiceId: config.elevenlabs.voiceId,
+  });
 } catch (error) {
-  console.error('Configuration error:', error);
+  console.error('❌ Configuration error:', error);
   process.exit(1);
 }
 
@@ -24,7 +31,9 @@ export default defineAgent({
   
   entry: async (ctx: JobContext) => {
     try {
-      console.log('Starting voice agent session...');
+      console.log('🚀 Starting voice agent session...');
+      console.log('🎯 Room name:', ctx.room.name);
+      console.log('👥 Participants:', ctx.room.numParticipants);
       
       // Create session manager
       const sessionManager = new AgentSessionManager(config);
@@ -38,14 +47,15 @@ export default defineAgent({
       
       // Set up cleanup on shutdown
       ctx.addShutdownCallback(async () => {
-        console.log('Shutting down agent session...');
+        console.log('🛑 Shutting down agent session...');
         await sessionManager.cleanup();
+        console.log('✅ Agent session shutdown complete');
       });
       
-      console.log('Voice agent session started successfully');
+      console.log('🎉 Voice agent session started successfully and ready to chat!');
       
     } catch (error) {
-      console.error('Error starting agent session:', error);
+      console.error('❌ Error starting agent session:', error);
       throw error;
     }
   },
