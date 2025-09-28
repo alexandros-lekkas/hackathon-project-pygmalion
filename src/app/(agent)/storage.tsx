@@ -32,7 +32,7 @@ export default function Storage() {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={clearContext}
+              onClick={() => clearContext()}
               className="text-xs"
             >
               Clear All
