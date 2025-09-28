@@ -25,7 +25,7 @@ export interface UseChatReturn {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   sendMessage: () => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
-  clearContext: () => void;
+  clearContext: () => Promise<void>;
   deleteMemory: (title: string) => Promise<void>;
   // Memory processing state
   isProcessingMemory: boolean;
@@ -438,7 +438,25 @@ export const useChat = (): UseChatReturn => {
   }, [sendMessage]);
   
   // Clear all context - messages, memory steps, and memories
-  const clearContext = useCallback(() => {
+  const clearContext = useCallback(async () => {
+    try {
+      // Clear all memories from Supabase
+      const response = await fetch('/api/memory/clear-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to clear memories from Supabase');
+      } else {
+        console.log('Successfully cleared all memories from Supabase');
+      }
+    } catch (error) {
+      console.error('Error clearing memories from Supabase:', error);
+    }
+
     // Reset to just the initial greeting
     setMessages([{
       id: "1",
