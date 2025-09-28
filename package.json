@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@livekit/agents-plugin-elevenlabs": "^1.0.6",
+    "@livekit/components-react": "^2.9.14",
+    "livekit-client": "^2.15.7",
+    "livekit-server-sdk": "^2.13.3",
     "next": "15.5.4",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
