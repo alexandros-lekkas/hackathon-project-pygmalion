@@ -1,26 +1,38 @@
-// Fine-tuning script for Maya AI Avatar
-// This script will handle the fine-tuning process for Maya's personality
+// scripts/finetune-maya.ts
+import 'dotenv/config';
+import fs from 'node:fs';
+import OpenAI from 'openai';
 
-import { systemMaya } from '../src/lib/agent/system-maya';
+async function main() {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('Missing OPENAI_API_KEY in .env');
+  }
 
-// TODO: Implement fine-tuning logic
-// This script should:
-// 1. Load the training data from data/maya-train.jsonl
-// 2. Use the system message from system-maya.ts
-// 3. Call the appropriate fine-tuning API (OpenAI, etc.)
-// 4. Handle the fine-tuning job lifecycle
-// 5. Save the resulting model information
+  // If you used the <MAYA_SYSTEM> token, do a quick replace here before upload.
+  // fs.writeFileSync('data/maya-train.upload.jsonl',
+  //   fs.readFileSync('data/maya-train.jsonl','utf8').replace(/<MAYA_SYSTEM>/g, require('../prompts/system-maya').MAYA_SYSTEM)
+  // );
 
-console.log('Maya fine-tuning script - Ready for implementation');
-console.log('System message loaded:', systemMaya);
+  const file = await openai.files.create({
+    file: fs.createReadStream('data/maya-train.jsonl'),
+    purpose: 'fine-tune',
+  });
 
-// Placeholder for fine-tuning implementation
-export async function finetuneMaya() {
-  // TODO: Implement fine-tuning logic here
-  throw new Error('Fine-tuning implementation pending');
+  const job = await openai.fineTuning.jobs.create({
+    training_file: file.id,
+    // pick a base that your org can fine-tune, e.g.:
+    model: 'gpt-4o-mini-2024-07-18',
+    suffix: 'maya-gf',
+  });
+
+  console.log('FT job:', job.id);
+  // Later:
+  // const done = await openai.fineTuning.jobs.retrieve(job.id);
+  // console.log(done.status, done.fine_tuned_model);
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  finetuneMaya().catch(console.error);
-}
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
