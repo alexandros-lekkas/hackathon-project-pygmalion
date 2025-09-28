@@ -11,6 +11,7 @@ export interface Message {
 export interface MemoryStep {
   text: string;
   timestamp: Date;
+  type?: "thinking" | "memory" | "extract";
 }
 
 export interface UseChatReturn {
@@ -171,43 +172,64 @@ export const useChat = (): UseChatReturn => {
           // Update the current streaming text
           setMemoryStreamingText(fullText);
           
-          // Instead of processing individual sentences, let's look for complete thoughts
-          // We'll detect major topic shifts or complete messages
+          // We need to capture the thinking process BEFORE the final output
+          // First, let's check if this is a thinking/analysis chunk
+          const isThinkingChunk = 
+            chunk.toLowerCase().includes("analyzing") || 
+            chunk.toLowerCase().includes("thinking") || 
+            chunk.toLowerCase().includes("looking") || 
+            chunk.toLowerCase().includes("examining") ||
+            chunk.toLowerCase().includes("checking") ||
+            chunk.toLowerCase().includes("considering") ||
+            chunk.toLowerCase().includes("processing");
           
-          // Check if we have new paragraphs or complete messages
-          if (fullText.includes("I've added a new memory") || 
-              fullText.includes("Memory saved") || 
-              fullText.includes("Analyzing") ||
-              fullText.includes("Extracting")) {
-            
-            // Split by major sections rather than sentences
-            const sections = fullText.split(/(?=I've added|Memory saved|Analyzing|Extracting)/g);
-            
-            // Process each major section
-            sections.forEach(section => {
-              const trimmed = section.trim();
-              // Only process sections we haven't seen before and that are meaningful
-              if (trimmed.length > 15 && !processedSentences.current.has(trimmed)) {
-                processedSentences.current.add(trimmed);
-                
-                // Check if this is a complete thought
-                const isComplete = trimmed.endsWith('.') || 
-                                  trimmed.endsWith('!') || 
-                                  trimmed.endsWith('?') ||
-                                  trimmed.length > 50;
-                
-                if (isComplete) {
-                  setMemorySteps(prev => [
-                    ...prev, 
-                    { 
-                      text: trimmed, 
-                      timestamp: new Date() 
-                    }
-                  ]);
-                }
+          // If this is a thinking chunk, add it immediately as a thinking step
+          if (isThinkingChunk && chunk.trim().length > 5) {
+            setMemorySteps(prev => [
+              ...prev, 
+              { 
+                text: chunk.trim(), 
+                timestamp: new Date(),
+                type: "thinking"
               }
-            });
+            ]);
           }
+          
+          // Now handle complete thoughts and final outputs
+          // We'll look for complete sentences or paragraphs
+          const sentences = fullText.match(/[^.!?\n\r]+[.!?\n\r]+/g) || [];
+          
+          // Process only complete sentences that we haven't seen before
+          sentences.forEach(sentence => {
+            const trimmed = sentence.trim();
+            
+            // Skip very short sentences and ones we've already processed
+            if (trimmed.length < 15 || processedSentences.current.has(trimmed)) {
+              return;
+            }
+            
+            // Check if this is a final output (memory creation/update)
+            const isMemoryOutput = 
+              trimmed.includes("I've") || 
+              trimmed.includes("memory titled") ||
+              trimmed.includes("updated the memory") ||
+              trimmed.includes("saved a new memory");
+              
+            // Only add final outputs, not partial sentences
+            if (isMemoryOutput) {
+              processedSentences.current.add(trimmed);
+              
+              // Add as a complete memory step
+              setMemorySteps(prev => [
+                ...prev, 
+                { 
+                  text: trimmed, 
+                  timestamp: new Date(),
+                  type: "memory"
+                }
+              ]);
+            }
+          });
         }
       } finally {
         reader.releaseLock();
