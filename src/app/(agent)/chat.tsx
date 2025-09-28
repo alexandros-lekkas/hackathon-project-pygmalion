@@ -178,9 +178,23 @@ export default function Chat() {
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
                     </p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs opacity-70">
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                      {message.role === "assistant" && message.audioUrl && (
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => 
+                              isPlaying ? stopAudio() : playAudio(message.audioUrl!)
+                            }
+                            className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors"
+                          >
+                            {isPlaying ? "⏸️" : "🔊"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
