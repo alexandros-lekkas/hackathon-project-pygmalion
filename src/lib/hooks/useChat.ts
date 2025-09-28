@@ -20,7 +20,7 @@ export interface UseChatReturn {
   setInput: (input: string) => void;
   isLoading: boolean;
   isClient: boolean;
-  scrollAreaRef: React.RefObject<HTMLDivElement>;
+  scrollAreaRef: React.RefObject<HTMLDivElement | null>;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   sendMessage: () => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
