@@ -13,6 +13,7 @@ import type { IConversation } from "@/types/tavus";
 import Providers from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 /**
  * WebGL Shader Programs for Chroma Key Effect
@@ -416,37 +417,63 @@ function App() {
   return (
     <main className="min-h-screen bg-background p-8">
       <div className="mx-auto max-w-2xl space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Video Call with Chroma Key</CardTitle>
-            <CardDescription>
-              Start a video call with AI-powered chroma key background removal using your configured API key.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                  <p className="text-sm text-destructive">{error}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Video Call with Chroma Key</CardTitle>
+              <CardDescription>
+                Start a video call with AI-powered chroma key background removal using your configured API key.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleStartCall}
+                    disabled={loading || !!conversation} 
+                    className="flex-1"
+                  >
+                    {loading ? "Starting Call..." : "Start Video Call"}
+                  </Button>
                 </div>
-              )}
-              
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleStartCall}
-                  disabled={loading || !!conversation} 
-                  className="flex-1"
-                >
-                  {loading ? "Starting Call..." : "Start Video Call"}
-                </Button>
+                
+                <p className="text-sm text-muted-foreground">
+                  Using API key from environment variables. Make sure TAVUS_API_KEY is configured.
+                </p>
               </div>
-              
-              <p className="text-sm text-muted-foreground">
-                Using API key from environment variables. Make sure TAVUS_API_KEY is configured.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Conversational Agent</CardTitle>
+              <CardDescription>
+                Chat with a simple AI assistant built using OpenAI Agents SDK.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Link href="/chat" className="flex-1">
+                    <Button className="w-full">
+                      Start Chat
+                    </Button>
+                  </Link>
+                </div>
+                
+                <p className="text-sm text-muted-foreground">
+                  A basic conversational agent that can answer questions and have conversations.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {conversation && (
           <div className="flex justify-center">
