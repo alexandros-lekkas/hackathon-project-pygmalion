@@ -1,17 +1,13 @@
-import { Column } from "@/components/layout/column";
+import Chat from "./chat";
+import Memory from "./memory";
+import Storage from "./storage";
 
 export default function AgentPage() {
   return (
     <>
-      <Column>
-        <div>AgentPage</div>
-      </Column>
-      <Column>
-        <div>AgentPage</div>
-      </Column>
-      <Column>
-        <div>AgentPage</div>
-      </Column>
+      <Chat />
+      <Memory />
+      <Storage />
     </>
   );
 }
