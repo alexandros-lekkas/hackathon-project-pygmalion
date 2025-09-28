@@ -2,11 +2,11 @@
 
 Hackathon PROJECT PYGMALION @ 9/27/2025
 
-## Mnemosyne: AI Memory Companion
+## Mayavatar: AI Memory Companion
 
 ## Overview
 
-Pygmalion is an intelligent memory system that enhances AI conversations by maintaining a persistent memory store. It automatically extracts important information from conversations, saves it with appropriate importance levels, and retrieves relevant memories during future interactions.
+Mayavatar is an intelligent memory system that enhances AI conversations by maintaining a persistent memory store. It automatically extracts important information from conversations, saves it with appropriate importance levels, and retrieves relevant memories during future interactions.
 
 ## Features
 
@@ -37,18 +37,21 @@ Pygmalion is an intelligent memory system that enhances AI conversations by main
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/hackathon-project-pygmalion.git
    cd hackathon-project-pygmalion
    ```
 
 2. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 3. Set up environment variables:
    Create a `.env.local` file with:
+
    ```
    OPENAI_API_KEY=your_openai_api_key
    SUPABASE_KEY=your_supabase_key
@@ -80,6 +83,7 @@ Pygmalion is an intelligent memory system that enhances AI conversations by main
 2. **Storage**: Memories are stored in Supabase with title, content, and importance rating.
 
 3. **Retrieval**: When you ask a question, the system:
+
    - Uses PostgreSQL full-text search with tsvector/tsquery
    - Applies trigram similarity for fuzzy matching
    - Ranks results by relevance and importance
