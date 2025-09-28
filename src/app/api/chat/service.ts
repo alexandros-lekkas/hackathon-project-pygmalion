@@ -43,7 +43,7 @@ const createMayaAgent = (): Agent => {
   return new Agent({
     name: "Maya",
     instructions: mayaPrompt,
-    model: "gpt-4o-mini", // Using a cost-effective model
+    model: "gpt-4o", // Using a cost-effective model
     modelSettings: {
       temperature: 0.8, // Slightly creative for Maya's personality
       maxTokens: 1000,
