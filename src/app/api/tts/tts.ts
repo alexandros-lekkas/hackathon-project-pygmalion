@@ -23,6 +23,10 @@ export const generateSpeech = async (
       throw new Error("ElevenLabs API key not configured");
     }
 
+    // Determine speed based on voice ID
+    const isMaleVoice = voiceId === "ODq5zmih8GrVes37Dizd";
+    const speed = isMaleVoice ? 1.0 : 1.2; // Normal speed for male, faster for female
+
     // Generate speech using ElevenLabs JavaScript SDK
     const audio = await elevenlabs.textToSpeech.convert(voiceId, {
       text: text,
@@ -32,7 +36,7 @@ export const generateSpeech = async (
         stability: 0.5,
         similarityBoost: 0.75,
         useSpeakerBoost: true,
-        speed: 1.2,
+        speed: speed,
       },
     });
 
