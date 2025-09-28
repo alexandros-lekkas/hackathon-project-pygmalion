@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Voice AI Agent',
-  description: 'Real-time voice conversation with AI agent',
+  title: 'Hackathon Project',
+  description: 'A Next.js application with shadcn/ui components',
 };
 
 export default function RootLayout({
