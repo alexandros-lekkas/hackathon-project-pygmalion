@@ -21,12 +21,14 @@ export class Assistant extends voice.Agent {
 
   // Override methods for custom behavior if needed
   async onUserMessage(message: string): Promise<void> {
-    console.log(`User message: ${message}`);
+    console.log('👤 User said:', message);
+    console.log('🔄 Processing user message...');
     // Add any custom message processing logic here
   }
 
   async onAgentResponse(response: string): Promise<void> {
-    console.log(`Agent response: ${response}`);
+    console.log('🤖 Agent responding:', response);
+    console.log('✅ Response sent to user');
     // Add any custom response processing logic here
   }
 }
