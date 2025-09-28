@@ -33,6 +33,8 @@ export const memoryAgent = new Agent({
 - Look for preference changes: "I prefer", "I like", "I hate", etc.
 - Look for new personal info: "my name is", "I work", "I live", etc.
 - Look for important statements: "remember", "important", "note", etc.
+- Look for travel/meeting plans: "going to", "will be", "traveling to", "visiting", "meeting", "meet up", "let's meet", "moving to", "move to", "relocating to", "relocate to", etc.
+- Look for new personal info: "my name is", "I work", "I live", etc.
 - When processing messages, provide context from recent conversation
 
 Always be helpful in managing memories and ensure users can easily access their stored information.`,

@@ -317,10 +317,18 @@ Return ONLY JSON. Shape:
 }
 
 Rules:
-- Save only if the message provides a durable fact, preference, plan, or correction useful later.
-- Title must be specific and scannable (≤ 80 chars).
-- Content should be self-contained, without filler, no markdown.
-- Importance guide: 1-3 minor, 4-6 recurring preference/context, 7-8 important, 9-10 critical.
+- Save ANY message that contains factual information, locations, plans, preferences, or personal details - even if casual or conversational
+- Extract the core fact from casual statements (e.g., "I'm in SF tonight" → location fact)
+- Title must be specific and scannable (≤ 80 chars)
+- Content should be self-contained, without filler, no markdown
+- Importance guide: 1-3 minor, 4-6 recurring preference/context, 7-8 important, 9-10 critical
+- Examples of what to save:
+  - "I'm in SF tonight" → location fact
+  - "I love pizza" → preference
+  - "I work at Google" → personal info
+  - "I'm going to Paris next week" → travel plan
+  - "I hate Mondays" → preference
+  - "I live in NYC" → location fact
       `,
       model: "gpt-4o-mini",
     });
