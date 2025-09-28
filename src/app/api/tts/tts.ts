@@ -24,7 +24,7 @@ export const generateSpeech = async (
     }
 
     // Determine speed based on voice ID
-    const isMaleVoice = voiceId === "ODq5zmih8GrVes37Dizd";
+    const isMaleVoice = voiceId === "GBv7mTt0atIp3Br8iCZE";
     const speed = isMaleVoice ? 1.0 : 1.2; // Normal speed for male, faster for female
 
     // Generate speech using ElevenLabs JavaScript SDK

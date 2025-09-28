@@ -117,7 +117,7 @@ export default function Chat() {
     setIsLoading(true);
 
     // Generate TTS audio for user message (using male voice)
-    const userAudioUrl = await generateTTS(userMessage.content, "ODq5zmih8GrVes37Dizd");
+    const userAudioUrl = await generateTTS(userMessage.content, "GBv7mTt0atIp3Br8iCZE");
     if (userAudioUrl) {
       // Update the user message with the audio URL
       setMessages((prev) => 
