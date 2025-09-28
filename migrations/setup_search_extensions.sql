@@ -72,29 +72,48 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create a custom type to return memory with score
+CREATE TYPE memory_with_score AS (
+  id integer,
+  title text,
+  content text,
+  importance integer,
+  score float
+);
+
 -- Create search function using full text search
 CREATE OR REPLACE FUNCTION public.search_memories_full_text(query_text TEXT, result_limit INTEGER DEFAULT 5)
-RETURNS SETOF public.memory AS $$
+RETURNS SETOF memory_with_score AS $$
 BEGIN
   RETURN QUERY
-  SELECT m.*
+  SELECT 
+    m.id,
+    m.title,
+    m.content,
+    m.importance,
+    (ts_rank(m.search_vector, plainto_tsquery('english', query_text)) * 100 * importance / 10)::float as score
   FROM public.memory m
   WHERE m.search_vector @@ plainto_tsquery('english', query_text)
   ORDER BY 
-    ts_rank(m.search_vector, plainto_tsquery('english', query_text)) * importance DESC
+    score DESC
   LIMIT result_limit;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create search function using trigram similarity
 CREATE OR REPLACE FUNCTION public.search_memories_trigram(query_text TEXT, result_limit INTEGER DEFAULT 5)
-RETURNS SETOF public.memory AS $$
+RETURNS SETOF memory_with_score AS $$
 BEGIN
   RETURN QUERY
-  SELECT m.*
+  SELECT 
+    m.id,
+    m.title,
+    m.content,
+    m.importance,
+    ((similarity(m.title, query_text) * 2 + similarity(m.content, query_text)) * 100 * importance / 10)::float as score
   FROM public.memory m
   ORDER BY 
-    (similarity(m.title, query_text) * 2 + similarity(m.content, query_text)) * importance DESC
+    score DESC
   LIMIT result_limit;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -341,17 +341,26 @@ export const useChat = (): UseChatReturn => {
       // Find relevant memories to inject as context - now async
       const relevantMemories = await searchMemoriesByRelevance(memories, userMessage.content);
       
-      // Update search results for display
+      // Store whether memories were found for this query
+      const memoriesFound = relevantMemories.length > 0;
+      
+      // Update search results for display with real or placeholder scores
       setSearchResults(relevantMemories.map(memory => ({
         ...memory,
-        score: Math.round(Math.random() * 100) // Just for visual display, replace with actual scores if available
+        // Use the memory's actual score if available, or generate a placeholder
+        score: memory.score !== undefined ? memory.score : Math.round(Math.random() * 100)
       })));
       
       // Create context string from relevant memories
       let contextMessage = userMessage.content;
-      if (relevantMemories.length > 0) {
+      
+      if (memoriesFound) {
+        // Map memories to a string with title, content, importance AND score
         const contextString = relevantMemories
-          .map(memory => `Memory: ${memory.title}\nContent: ${memory.content}\nImportance: ${memory.importance}/10`)
+          .map(memory => {
+            const score = memory.score !== undefined ? memory.score : Math.round(Math.random() * 100);
+            return `Memory: ${memory.title}\nContent: ${memory.content}\nImportance: ${memory.importance}/10\nRelevance Score: ${score}/100`;
+          })
           .join('\n\n');
           
         // Inject the context before the user's message
@@ -359,10 +368,14 @@ export const useChat = (): UseChatReturn => {
         
         // Log the injected context for debugging
         console.log('Injecting memory context:', relevantMemories);
-        
-        // Keep the search results visible for a moment
-        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        // Explicitly state that no memories were found
+        contextMessage = `NO MEMORIES FOUND FOR THIS QUERY.\n\nUSER MESSAGE:\n${userMessage.content}`;
+        console.log('No relevant memories found for query:', userMessage.content);
       }
+      
+      // Keep the search results visible for a moment
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const response = await fetch("/api/chat", {
         method: "POST",

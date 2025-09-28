@@ -3,4 +3,5 @@ export type Memory = {
   title: string;
   content: string;
   importance: number;
+  score?: number; // Score from search results, only present when returned from search
 }
