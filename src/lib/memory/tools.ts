@@ -1,45 +1,60 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
 import { Memory } from "./types";
 
-// Path to the memory JSON file
-const MEMORY_FILE_PATH = join(process.cwd(), "data", "memories.json");
+// In-memory storage for server-side use
+let memoryStore: Memory[] = [];
 
-// Helper function to read memories from file
+// Helper function to read memories
 function readMemories(): Memory[] {
   try {
-    if (!existsSync(MEMORY_FILE_PATH)) {
-      return [];
+    if (typeof window !== 'undefined') {
+      // Client-side: use localStorage
+      const data = localStorage.getItem("conversation_memories");
+      if (!data) {
+        return [];
+      }
+      
+      const parsed = JSON.parse(data);
+      
+      // Validate that parsed data is an array
+      if (!Array.isArray(parsed)) {
+        console.warn("Memory storage contains invalid data, initializing empty array");
+        return [];
+      }
+      
+      // Validate each memory object
+      return parsed.filter((memory: any) => {
+        return memory && 
+               typeof memory.title === 'string' && 
+               typeof memory.content === 'string' && 
+               typeof memory.importance === 'number' &&
+               memory.importance >= 1 && 
+               memory.importance <= 10;
+      });
+    } else {
+      // Server-side: use in-memory store
+      return memoryStore;
     }
-    const data = readFileSync(MEMORY_FILE_PATH, "utf-8");
-    const parsed = JSON.parse(data);
-    
-    // Validate that parsed data is an array
-    if (!Array.isArray(parsed)) {
-      console.warn("Memory file contains invalid data, initializing empty array");
-      return [];
-    }
-    
-    // Validate each memory object
-    return parsed.filter((memory: any) => {
-      return memory && 
-             typeof memory.title === 'string' && 
-             typeof memory.content === 'string' && 
-             typeof memory.importance === 'number' &&
-             memory.importance >= 1 && 
-             memory.importance <= 10;
-    });
   } catch (error) {
     console.error("Error reading memories:", error);
     return [];
   }
 }
 
-// Helper function to write memories to file
+// Helper function to write memories
 function writeMemories(memories: Memory[]): void {
-  writeFileSync(MEMORY_FILE_PATH, JSON.stringify(memories, null, 2));
+  try {
+    if (typeof window !== 'undefined') {
+      // Client-side: use localStorage
+      localStorage.setItem("conversation_memories", JSON.stringify(memories, null, 2));
+    } else {
+      // Server-side: use in-memory store
+      memoryStore = memories;
+    }
+  } catch (error) {
+    console.error("Error writing memories:", error);
+  }
 }
 
 // Helper function to generate a unique ID
@@ -128,11 +143,11 @@ export const getAllMemories = tool({
   name: "get_all_memories",
   description: "Retrieve all stored memories",
   parameters: z.object({
-    sortBy: z.enum(["importance", "title", "content"]).optional().describe("Sort memories by importance, title, or content"),
-    order: z.enum(["asc", "desc"]).optional().describe("Sort order: ascending or descending")
+    sortBy: z.enum(["importance", "title", "content"]).nullable().describe("Sort memories by importance, title, or content"),
+    order: z.enum(["asc", "desc"]).nullable().describe("Sort order: ascending or descending")
   }),
   async execute({ sortBy = "importance", order = "desc" }) {
-    return getAllMemoriesSorted(sortBy, order);
+    return getAllMemoriesSorted(sortBy || "importance", order || "desc");
   }
 });
 
@@ -166,11 +181,11 @@ export const searchMemories = tool({
   description: "Search for memories by title or content",
   parameters: z.object({
     query: z.string().describe("Search query to find relevant memories"),
-    minImportance: z.number().min(1).max(10).optional().describe("Minimum importance level filter"),
-    maxResults: z.number().min(1).max(50).optional().describe("Maximum number of results to return")
+    minImportance: z.number().min(1).max(10).nullable().describe("Minimum importance level filter"),
+    maxResults: z.number().min(1).max(50).nullable().describe("Maximum number of results to return")
   }),
   async execute({ query, minImportance, maxResults = 10 }) {
-    return searchMemoriesByQuery(query, minImportance, maxResults);
+    return searchMemoriesByQuery(query, minImportance || undefined, maxResults || 10);
   }
 });
 
@@ -215,12 +230,12 @@ export const updateMemory = tool({
   description: "Update an existing memory by searching for it and replacing it",
   parameters: z.object({
     searchQuery: z.string().describe("Search query to find the memory to update"),
-    newTitle: z.string().optional().describe("New title for the memory"),
-    newContent: z.string().optional().describe("New content for the memory"),
-    newImportance: z.number().min(1).max(10).optional().describe("New importance level")
+    newTitle: z.string().nullable().describe("New title for the memory"),
+    newContent: z.string().nullable().describe("New content for the memory"),
+    newImportance: z.number().min(1).max(10).nullable().describe("New importance level")
   }),
   async execute({ searchQuery, newTitle, newContent, newImportance }) {
-    return updateMemoryBySearch(searchQuery, newTitle, newContent, newImportance);
+    return updateMemoryBySearch(searchQuery, newTitle || undefined, newContent || undefined, newImportance || undefined);
   }
 });
 
@@ -308,7 +323,7 @@ export const getMemoriesByImportance = tool({
   parameters: z.object({
     minImportance: z.number().min(1).max(10).describe("Minimum importance level"),
     maxImportance: z.number().min(1).max(10).describe("Maximum importance level"),
-    limit: z.number().min(1).max(100).optional().describe("Maximum number of results")
+    limit: z.number().min(1).max(100).nullable().describe("Maximum number of results")
   }),
   async execute({ minImportance, maxImportance, limit = 50 }) {
     try {
@@ -320,7 +335,7 @@ export const getMemoriesByImportance = tool({
       
       const sortedMemories = filteredMemories
         .sort((a, b) => b.importance - a.importance)
-        .slice(0, limit);
+        .slice(0, limit || 50);
       
       return {
         success: true,
@@ -436,10 +451,10 @@ export const processUserMessage = tool({
   description: "Automatically analyze a user message and update relevant memories or create new ones",
   parameters: z.object({
     userMessage: z.string().describe("The user's message to process"),
-    conversationContext: z.string().optional().describe("Additional context from the conversation")
+    conversationContext: z.string().nullable().describe("Additional context from the conversation")
   }),
   async execute({ userMessage, conversationContext = "" }) {
-    return processUserMessageForMemory(userMessage, conversationContext);
+    return processUserMessageForMemory(userMessage, conversationContext || "");
   }
 });
 
