@@ -39,7 +39,7 @@ const loadMayaPrompt = (): string => {
 // Create Maya agent with the system prompt
 const createMayaAgent = (): Agent => {
   const mayaPrompt = loadMayaPrompt();
-  
+
   return new Agent({
     name: "Maya",
     instructions: mayaPrompt,
@@ -52,7 +52,9 @@ const createMayaAgent = (): Agent => {
 };
 
 // Process chat request and return response
-export const processChatRequest = async (request: ChatRequest): Promise<ChatResponse> => {
+export const processChatRequest = async (
+  request: ChatRequest
+): Promise<ChatResponse> => {
   // Parse and validate request body
   const { message, history } = ChatRequestSchema.parse(request);
 
