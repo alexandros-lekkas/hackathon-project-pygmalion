@@ -6,7 +6,7 @@ const elevenlabs = new ElevenLabsClient({
 });
 
 // Default voice ID (you can change this to any voice you prefer)
-const DEFAULT_VOICE_ID = "XB0fDUnXU5powFXDhCwa"; // Default voice from the example
+const DEFAULT_VOICE_ID = "XB0fDUnXU5powFXDhCwa"; // Default female voice
 
 export interface TTSResponse {
   audioUrl: string;

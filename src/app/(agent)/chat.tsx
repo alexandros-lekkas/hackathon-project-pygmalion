@@ -56,14 +56,14 @@ export default function Chat() {
   }, [messages]);
 
   // Generate TTS audio for text
-  const generateTTS = async (text: string): Promise<string | null> => {
+  const generateTTS = async (text: string, voiceId?: string): Promise<string | null> => {
     try {
       const response = await fetch("/api/tts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, voiceId }),
       });
 
       if (!response.ok) {
@@ -116,6 +116,22 @@ export default function Chat() {
     setInput("");
     setIsLoading(true);
 
+    // Generate TTS audio for user message (using male voice)
+    const userAudioUrl = await generateTTS(userMessage.content, "ODq5zmih8GrVes37Dizd");
+    if (userAudioUrl) {
+      // Update the user message with the audio URL
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === userMessage.id 
+            ? { ...msg, audioUrl: userAudioUrl } 
+            : msg
+        )
+      );
+      
+      // Play the user's message audio
+      playAudio(userAudioUrl);
+    }
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -134,7 +150,7 @@ export default function Chat() {
 
       const data = await response.json();
 
-      // Generate TTS audio for the response first
+      // Generate TTS audio for the response first (using female voice - default)
       const audioUrl = await generateTTS(data.response);
 
       const assistantMessage: Message = {
