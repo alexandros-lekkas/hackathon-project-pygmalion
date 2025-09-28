@@ -32,7 +32,7 @@ export const generateSpeech = async (
         stability: 0.5,
         similarityBoost: 0.75,
         useSpeakerBoost: true,
-        speed: 1.3,
+        speed: 1.2,
       },
     });
 
