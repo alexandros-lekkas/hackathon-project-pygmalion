@@ -9,14 +9,10 @@ import {
   useAudioTrack,
   DailyAudio,
 } from "@daily-co/daily-react";
-import { createConversation } from "@/lib/tavus/create-conversation";
-import { endConversation } from "@/lib/tavus/end-conversation";
-import type { IConversation } from "@/lib/tavus/types";
+import type { IConversation } from "@/types/tavus";
 import Providers from "@/components/providers";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 
 /**
  * WebGL Shader Programs for Chroma Key Effect
@@ -364,39 +360,59 @@ const Call = ({ onLeave }: { onLeave: () => void }) => {
  * - Connection to Daily.co video service
  */
 function App() {
-  const [token, setToken] = useState("");
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const DailyCall = useDaily();
 
   // Start a new video call session
-  const handleStartCall = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (token && DailyCall) {
+  const handleStartCall = async () => {
+    if (DailyCall) {
       setLoading(true);
+      setError(null);
       try {
-        const conversation = await createConversation(token);
+        const response = await fetch("/api/tavus/create-conversation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const conversation: IConversation = await response.json();
         await DailyCall.join({ url: conversation.conversation_url });
         setConversation(conversation);
       } catch (error) {
-        alert(`Failed to join the call. ${error}`);
+        setError(`Failed to join the call. ${error}`);
       }
       setLoading(false);
     } else {
-      console.error("Token is required to start the call");
+      setError("Daily call not initialized");
     }
   };
 
   // Clean up and end the current call
-  const handleLeaveCall = () => {
+  const handleLeaveCall = async () => {
     DailyCall?.leave();
-    endConversation(conversation!.conversation_id, token);
+    
+    if (conversation) {
+      try {
+        await fetch("/api/tavus/end-conversation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ conversationId: conversation.conversation_id }),
+        });
+      } catch (error) {
+        console.error("Failed to end conversation:", error);
+      }
+    }
+    
     setConversation(null);
-  };
-
-  // Mask API token for security
-  const getDisplayToken = () => {
-    return token.length > 4 ? `****${token.slice(-4)}` : token;
   };
 
   return (
@@ -406,46 +422,31 @@ function App() {
           <CardHeader>
             <CardTitle>AI Video Call with Chroma Key</CardTitle>
             <CardDescription>
-              Enter your Tavus API token to start a video call with AI-powered chroma key background removal.
+              Start a video call with AI-powered chroma key background removal using your configured API key.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleStartCall} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="token">
-                  Tavus API Token
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="token"
-                    type="text"
-                    value={conversation ? getDisplayToken() : token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder="Enter your API token"
-                    disabled={!!conversation}
-                    className="flex-1"
-                  />
-                  <Button 
-                    disabled={!token || loading || !!conversation} 
-                    type="submit"
-                    className="shrink-0"
-                  >
-                    {loading ? "Loading..." : "Start Call"}
-                  </Button>
+            <div className="space-y-4">
+              {error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-sm text-destructive">{error}</p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Don't have a token?{" "}
-                  <a
-                    href="https://platform.tavus.io/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Create one here
-                  </a>
-                </p>
+              )}
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleStartCall}
+                  disabled={loading || !!conversation} 
+                  className="flex-1"
+                >
+                  {loading ? "Starting Call..." : "Start Video Call"}
+                </Button>
               </div>
-            </form>
+              
+              <p className="text-sm text-muted-foreground">
+                Using API key from environment variables. Make sure TAVUS_API_KEY is configured.
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
