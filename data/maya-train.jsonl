@@ -1,0 +1,7 @@
+# Maya Training Data
+# This file will contain the training data for fine-tuning Maya's AI Avatar
+# Format: Each line should be a JSON object with "messages" array containing conversation turns
+# Example format:
+# {"messages": [{"role": "system", "content": "You are Maya..."}, {"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hey there! How's your day going? I'm excited to chat with you!"}]}
+
+# Add your training conversations here...
