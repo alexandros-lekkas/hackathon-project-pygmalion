@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import LogViewer from "./LogViewer";
+import MicVisualizer from "./MicVisualizer";
 
 interface VoiceAgentUIProps {
   config: LiveKitConfig;
@@ -42,7 +43,12 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
   };
 
   const handleDisconnect = async () => {
+    console.log('🔄 Reconnecting to voice agent...');
     await disconnect();
+    // Auto-reconnect after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const handleToggleMute = async () => {
@@ -51,9 +57,19 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <Card className="w-full max-w-md">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Side - Microphone Visualizer */}
+          <div className="lg:col-span-1">
+            <MicVisualizer 
+              isMuted={state.isMuted} 
+              isConnected={state.isConnected} 
+            />
+          </div>
+          
+          {/* Right Side - Voice Controls */}
+          <div className="lg:col-span-2">
+            <Card className="w-full">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Voice AI Agent</CardTitle>
           <CardDescription>
@@ -161,13 +177,13 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
                     : "Click to mute"}
                 </p>
 
-                {/* Disconnect Button */}
+                {/* Reconnect Button */}
                 <Button
                   onClick={handleDisconnect}
                   variant="outline"
                   className="w-full"
                 >
-                  Disconnect
+                  Reconnect
                 </Button>
               </div>
             )}
@@ -185,9 +201,11 @@ export default function VoiceAgentUI({ config }: VoiceAgentUIProps) {
           </div>
         </CardContent>
       </Card>
-      
-      {/* Log Viewer */}
-      <LogViewer />
+          </div>
+        </div>
+        
+        {/* Log Viewer - Full Width */}
+        <LogViewer />
       </div>
     </div>
   );
