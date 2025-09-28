@@ -87,8 +87,38 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Extract the response
-    const response = typeof result === 'string' ? result : String(result);
+    // Debug: log the result structure
+    console.log('Agent result:', result);
+    console.log('Result type:', typeof result);
+
+    // Extract the response from the result object
+    let response: string;
+    if (typeof result === 'string') {
+      response = result;
+    } else if (result && typeof result === 'object') {
+      // The response is in the _currentStep.output property
+      const currentStep = (result as any).state?._currentStep;
+      console.log('Current step:', currentStep);
+      
+      if (currentStep && currentStep.output) {
+        response = currentStep.output;
+      } else {
+        // Fallback: try other possible properties
+        const messages = (result as any).messages || [];
+        const lastMessage = messages[messages.length - 1];
+        
+        if (lastMessage && lastMessage.content) {
+          response = lastMessage.content;
+        } else {
+          response = (result as any).text || 
+                     (result as any).content || 
+                     (result as any).message || 
+                     'Sorry, I could not generate a response.';
+        }
+      }
+    } else {
+      response = String(result);
+    }
 
     // Validate response
     const validatedResponse = ChatResponseSchema.parse({ response });
