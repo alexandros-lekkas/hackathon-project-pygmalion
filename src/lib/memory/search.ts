@@ -1,5 +1,4 @@
 import { Memory } from './types';
-import { searchMemories as searchMemoriesInDB } from './supabase-search';
 
 /**
  * Search memories for relevant context based on a query
@@ -17,15 +16,23 @@ export async function searchMemoriesByRelevance(
   }
 
   try {
-    // First try database search for best results
-    const dbResults = await searchMemoriesInDB(query, maxResults);
-    
-    // If we got results from the database, return those
-    if (dbResults && dbResults.length > 0) {
-      return dbResults;
+    // First try API search endpoint (which runs on the server where env vars are available)
+    const response = await fetch('/api/memory/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, limit: maxResults }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.results && data.results.length > 0) {
+        return data.results;
+      }
     }
     
-    // Fallback to in-memory search if DB search returns no results
+    // Fallback to in-memory search if API search returns no results
     return searchMemoriesInMemory(memories, query, maxResults);
   } catch (error) {
     console.error('Database search failed, falling back to in-memory search:', error);

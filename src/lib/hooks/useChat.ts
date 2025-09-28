@@ -338,8 +338,8 @@ export const useChat = (): UseChatReturn => {
       // Simulate a short delay to show the search process
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Find relevant memories to inject as context
-      const relevantMemories = searchMemoriesByRelevance(memories, userMessage.content);
+      // Find relevant memories to inject as context - now async
+      const relevantMemories = await searchMemoriesByRelevance(memories, userMessage.content);
       
       // Update search results for display
       setSearchResults(relevantMemories.map(memory => ({
