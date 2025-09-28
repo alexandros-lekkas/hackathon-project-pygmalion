@@ -23,7 +23,7 @@ export default function Memory() {
         </div>
 
         <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full mr-3">
             {/* Memory Search Process */}
             {isSearchingMemories && (
               <div className="mb-4 bg-purple-50/30 rounded-lg border border-purple-200 p-3 shadow-sm">

@@ -37,7 +37,7 @@ export default function Storage() {
         </div>
 
         <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full mr-3">
             {/* Unified Log View */}
             <div className="space-y-1">
               {/* Live Thinking Card */}
