@@ -6,7 +6,7 @@ const elevenlabs = new ElevenLabsClient({
 });
 
 // Default voice ID (you can change this to any voice you prefer)
-const DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"; // Default voice from the example
+const DEFAULT_VOICE_ID = "XB0fDUnXU5powFXDhCwa"; // Default voice from the example
 
 export interface TTSResponse {
   audioUrl: string;
@@ -32,7 +32,7 @@ export const generateSpeech = async (
         stability: 0.5,
         similarityBoost: 0.75,
         useSpeakerBoost: true,
-        speed: 1.0,
+        speed: 1.3,
       },
     });
 

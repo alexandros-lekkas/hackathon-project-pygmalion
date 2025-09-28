@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { generateSpeech } from "../chat/tts";
+import { generateSpeech } from "./tts";
 
 // Request validation schema
 const TTSRequestSchema = z.object({

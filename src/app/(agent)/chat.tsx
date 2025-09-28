@@ -25,7 +25,6 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -94,26 +93,13 @@ export default function Chat() {
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
     
-    audio.onplay = () => setIsPlaying(true);
-    audio.onended = () => setIsPlaying(false);
     audio.onerror = () => {
       console.error("Audio playback failed");
-      setIsPlaying(false);
     };
     
     audio.play().catch((error) => {
       console.error("Audio play failed:", error);
-      setIsPlaying(false);
     });
-  };
-
-  // Stop audio playback
-  const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlaying(false);
-    }
   };
 
   const sendMessage = async () => {
@@ -148,28 +134,21 @@ export default function Chat() {
 
       const data = await response.json();
 
+      // Generate TTS audio for the response first
+      const audioUrl = await generateTTS(data.response);
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
+        audioUrl: audioUrl || undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Generate TTS audio for the response
-      const audioUrl = await generateTTS(data.response);
+      // Play the audio if available
       if (audioUrl) {
-        // Update the message with the audio URL
-        setMessages((prev) => 
-          prev.map((msg) => 
-            msg.id === assistantMessage.id 
-              ? { ...msg, audioUrl } 
-              : msg
-          )
-        );
-        
-        // Play the audio
         playAudio(audioUrl);
       }
     } catch (error) {
@@ -227,18 +206,6 @@ export default function Chat() {
                       <p className="text-xs opacity-70">
                         {isClient ? message.timestamp.toLocaleTimeString() : ""}
                       </p>
-                      {message.role === "assistant" && message.audioUrl && (
-                        <div className="flex items-center space-x-1">
-                          <button
-                            onClick={() => 
-                              isPlaying ? stopAudio() : playAudio(message.audioUrl!)
-                            }
-                            className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors"
-                          >
-                            {isPlaying ? "⏸️" : "🔊"}
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
