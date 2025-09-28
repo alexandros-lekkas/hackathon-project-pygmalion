@@ -1,6 +1,6 @@
 # Hackathon Project Pygmalion 🧑‍💻
 
-Hackathon PROJECT PYGMALION @ 9/27/2025
+Hackathon PROJECT PYGMALION @ Chicago (9/27/2025)
 
 ## Mayavatar: AI Memory Companion
 
