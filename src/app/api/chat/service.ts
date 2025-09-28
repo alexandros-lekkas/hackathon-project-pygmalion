@@ -1,6 +1,7 @@
 import { Agent, run } from "@openai/agents";
 import { z } from "zod";
 import { ChatRequest, ChatResponse, Message } from "./types";
+import { generateSpeech } from "./tts";
 import fs from "fs";
 import path from "path";
 
@@ -21,6 +22,7 @@ const ChatRequestSchema = z.object({
 // Response schema
 const ChatResponseSchema = z.object({
   response: z.string(),
+  audioUrl: z.string().optional(),
 });
 
 // Load Maya system prompt
@@ -129,8 +131,15 @@ export const processChatRequest = async (
     response = String(result);
   }
 
+  // Generate speech for the response
+  console.log("Generating speech for response:", response);
+  const ttsResult = await generateSpeech(response);
+  
   // Validate response
-  const validatedResponse = ChatResponseSchema.parse({ response });
+  const validatedResponse = ChatResponseSchema.parse({ 
+    response,
+    audioUrl: ttsResult.success ? ttsResult.audioUrl : undefined
+  });
 
   return validatedResponse;
 };

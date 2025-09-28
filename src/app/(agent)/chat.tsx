@@ -11,6 +11,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  audioUrl?: string;
 }
 
 export default function Chat() {
@@ -24,7 +25,9 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-scroll to bottom when new messages are added with smooth scrolling
   useEffect(() => {
@@ -46,6 +49,37 @@ export default function Chat() {
     const timeoutId = setTimeout(scrollToBottom, 100);
     return () => clearTimeout(timeoutId);
   }, [messages]);
+
+  // Play audio when assistant messages arrive
+  const playAudio = (audioUrl: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    
+    audio.onplay = () => setIsPlaying(true);
+    audio.onended = () => setIsPlaying(false);
+    audio.onerror = () => {
+      console.error("Audio playback failed");
+      setIsPlaying(false);
+    };
+    
+    audio.play().catch((error) => {
+      console.error("Audio play failed:", error);
+      setIsPlaying(false);
+    });
+  };
+
+  // Stop audio playback
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -84,9 +118,15 @@ export default function Chat() {
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
+        audioUrl: data.audioUrl,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Play audio if available
+      if (data.audioUrl) {
+        playAudio(data.audioUrl);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
