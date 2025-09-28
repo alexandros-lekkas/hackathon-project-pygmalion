@@ -26,6 +26,7 @@ export interface UseChatReturn {
   sendMessage: () => Promise<void>;
   handleKeyPress: (e: React.KeyboardEvent) => void;
   clearContext: () => void;
+  deleteMemory: (title: string) => Promise<void>;
   // Memory processing state
   isProcessingMemory: boolean;
   memoryStreamingText: string;
@@ -456,6 +457,28 @@ export const useChat = (): UseChatReturn => {
     setSearchResults([]);
   }, []);
 
+  // Delete memory function
+  const deleteMemory = useCallback(async (title: string) => {
+    try {
+      const response = await fetch('/api/memory/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete memory: ${response.statusText}`);
+      }
+      
+      // Update the memories state by removing the deleted memory
+      setMemories(prev => prev.filter(memory => memory.title !== title));
+    } catch (error) {
+      console.error('Failed to delete memory:', error);
+    }
+  }, []);
+
   return {
     messages,
     input,
@@ -467,6 +490,7 @@ export const useChat = (): UseChatReturn => {
     sendMessage,
     handleKeyPress,
     clearContext,
+    deleteMemory,
     isProcessingMemory,
     memoryStreamingText,
     memorySteps,

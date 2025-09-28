@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useChatContext } from "@/lib/providers/chat-provider";
 
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function Storage() {
   const {
@@ -14,7 +15,10 @@ export default function Storage() {
     memoryStreamingText: streamingText,
     memorySteps,
     clearContext,
+    deleteMemory,
   } = useChatContext();
+  
+  const [deletingMemory, setDeletingMemory] = useState<string | null>(null);
 
   return (
     <MemoryColumn isProcessing={isProcessing}>
@@ -172,18 +176,41 @@ export default function Storage() {
                             >
                               [STORED] {memory.title}
                             </span>
-                            <Badge
-                              variant={
-                                memory.importance >= 7
-                                  ? "destructive"
-                                  : memory.importance >= 4
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {memory.importance}/10
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  memory.importance >= 7
+                                    ? "destructive"
+                                    : memory.importance >= 4
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {memory.importance}/10
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-gray-400 hover:text-red-500"
+                                onClick={async () => {
+                                  setDeletingMemory(memory.title);
+                                  await deleteMemory(memory.title);
+                                  setDeletingMemory(null);
+                                }}
+                                disabled={deletingMemory === memory.title}
+                              >
+                                {deletingMemory === memory.title ? (
+                                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-t-transparent border-red-500" />
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                  </svg>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                           <div className="text-xs font-mono text-gray-700 mt-1">
                             {memory.content}
