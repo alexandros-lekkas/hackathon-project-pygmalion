@@ -5,6 +5,7 @@ import { Column } from "@/components/layout/column";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Play, Pause } from "lucide-react";
 
 interface Message {
   id: string;
@@ -26,12 +27,24 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isAutorun, setIsAutorun] = useState(false);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const autorunIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Set client state to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  // Cleanup autorun interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autorunIntervalRef.current) {
+        clearInterval(autorunIntervalRef.current);
+      }
+    };
   }, []);
 
   // Auto-scroll to bottom when new messages are added with smooth scrolling
@@ -181,6 +194,76 @@ export default function Chat() {
     }
   };
 
+  // Autorun function that simulates typing and sending a user message
+  const generateAutoUserMessage = async () => {
+    if (isLoading || isGeneratingPrompt) return;
+
+    // Only generate user messages, let the normal flow handle AI responses
+    const lastMessage = messages[messages.length - 1];
+    const shouldSendUserMessage = lastMessage?.role === "assistant";
+
+    if (!shouldSendUserMessage) {
+      return; // Don't send if last message was already from user
+    }
+
+    setIsGeneratingPrompt(true);
+
+    const userPrompts = [
+      "Tell me more about that",
+      "That's interesting, what else?",
+      "I see, can you elaborate?",
+      "What do you think about that?",
+      "That's cool!",
+      "Really? Tell me more",
+      "I'm curious about that",
+      "What else can you tell me?",
+      "That sounds fascinating",
+      "I'd love to hear more",
+      "Can you give me an example?",
+      "How does that work?",
+      "Why is that important?",
+      "What are the implications?",
+      "That's amazing!",
+      "I never thought of it that way",
+      "What's your take on this?",
+      "That makes sense",
+      "I'm learning a lot here",
+      "This is really helpful"
+    ];
+    
+    const randomPrompt = userPrompts[Math.floor(Math.random() * userPrompts.length)];
+    
+    // Simulate typing in the input field
+    setInput(randomPrompt);
+    
+    // Wait a moment to simulate typing, then send
+    setTimeout(async () => {
+      setIsGeneratingPrompt(false);
+      await sendMessage();
+    }, 1000);
+  };
+
+  // Toggle autorun functionality
+  const toggleAutorun = () => {
+    if (isAutorun) {
+      // Stop autorun
+      if (autorunIntervalRef.current) {
+        clearInterval(autorunIntervalRef.current);
+        autorunIntervalRef.current = null;
+      }
+      setIsAutorun(false);
+    } else {
+      // Start autorun
+      setIsAutorun(true);
+      // Generate first message immediately
+      generateAutoUserMessage();
+      // Then continue every 8-15 seconds
+      autorunIntervalRef.current = setInterval(() => {
+        generateAutoUserMessage();
+      }, Math.random() * 7000 + 8000); // Random interval between 8-15 seconds
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -192,10 +275,23 @@ export default function Chat() {
     <Column isLoading={isLoading}>
       <div className="flex flex-col h-full">
         <div className="flex-shrink-0 mb-4">
-          <h2 className="text-lg font-semibold">AI Assistant</h2>
-          <p className="text-sm text-muted-foreground">
-            Chat with your AI assistant
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">AI Assistant</h2>
+              <p className="text-sm text-muted-foreground">
+                {isAutorun ? "Auto-conversation mode" : "Chat with your AI assistant"}
+              </p>
+            </div>
+            <Button
+              onClick={toggleAutorun}
+              variant={isAutorun ? "destructive" : "default"}
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {isAutorun ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isAutorun ? "Stop" : "Auto"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0">
@@ -246,13 +342,23 @@ export default function Chat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              disabled={isLoading}
-              className="flex-1"
+              placeholder={
+                isGeneratingPrompt 
+                  ? "Generating message..." 
+                  : isAutorun 
+                    ? "Auto-conversation active..." 
+                    : "Type your message..."
+              }
+              disabled={isLoading || isAutorun}
+              className={`flex-1 transition-all duration-300 ${
+                isGeneratingPrompt 
+                  ? "ring-2 ring-blue-500 ring-opacity-50 bg-blue-50 dark:bg-blue-900/20" 
+                  : ""
+              }`}
             />
             <Button
               onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || isAutorun}
               size="sm"
             >
               Send
