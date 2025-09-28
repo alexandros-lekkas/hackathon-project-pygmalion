@@ -18,6 +18,7 @@ async function addOrUpdateMemory(title: string, content: string, importance: num
   );
   
   const memory: Memory = {
+    id: existingIndex !== -1 ? memories[existingIndex].id : Number(generateId()),
     title: title.trim(),
     content: content.trim(),
     importance
@@ -155,6 +156,7 @@ async function updateMemoryBySearch(searchQuery: string, newTitle?: string, newC
   
   const originalMemory = memories[memoryIndex];
   const updatedMemory: Memory = {
+    id: originalMemory.id,
     title: newTitle ?? originalMemory.title,
     content: newContent ?? originalMemory.content,
     importance: newImportance ?? originalMemory.importance
@@ -394,6 +396,7 @@ Rules:
       );
 
       const memory: Memory = {
+        id: existing ? existing.id : Number(generateId()),
         title: safe.title,
         content: safe.content,
         importance: Math.max(1, Math.min(10, Math.round(safe.importance))),
