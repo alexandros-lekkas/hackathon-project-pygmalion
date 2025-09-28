@@ -84,7 +84,7 @@ export default function Chat() {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         return data.audioUrl;
       } else {
@@ -102,14 +102,14 @@ export default function Chat() {
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    
+
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
-    
+
     audio.onerror = () => {
       console.error("Audio playback failed");
     };
-    
+
     audio.play().catch((error) => {
       console.error("Audio play failed:", error);
     });
@@ -133,14 +133,14 @@ export default function Chat() {
     const userAudioUrl = await generateTTS(userMessage.content, "GBv7mTt0atIp3Br8iCZE");
     if (userAudioUrl) {
       // Update the user message with the audio URL
-      setMessages((prev) => 
-        prev.map((msg) => 
-          msg.id === userMessage.id 
-            ? { ...msg, audioUrl: userAudioUrl } 
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === userMessage.id
+            ? { ...msg, audioUrl: userAudioUrl }
             : msg
         )
       );
-      
+
       // Play the user's message audio
       playAudio(userAudioUrl);
     }
@@ -180,6 +180,21 @@ export default function Chat() {
       if (audioUrl) {
         playAudio(audioUrl);
       }
+
+      // Update memories in the background (non-blocking)
+      fetch("/api/memory", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      }).catch((error) => {
+        console.error("Memory update failed:", error);
+        // Don't show error to user since this is background processing
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
@@ -300,16 +315,14 @@ export default function Chat() {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
+                    className={`max-w-[80%] rounded-lg px-3 py-2 ${message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
