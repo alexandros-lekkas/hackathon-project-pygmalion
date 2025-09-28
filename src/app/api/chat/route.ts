@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { processChatRequest } from "./service";
+import { processChatRequest, updateMemories } from "./service";
 import { ChatRequest, ChatError } from "./types";
 
 export async function POST(request: NextRequest) {
@@ -11,6 +11,9 @@ export async function POST(request: NextRequest) {
 
     // Process the chat request using the service
     const response = await processChatRequest(chatRequest);
+
+    //Basically, I want you to update the memories but the API should continue running and not await the updateMemories function
+    updateMemories(chatRequest);
 
     return NextResponse.json(response);
   } catch (error) {

@@ -1,7 +1,7 @@
 import { Agent } from "@openai/agents";
 import { memoryTools } from "./tools";
 
-const memoryAgent = new Agent({
+export const memoryAgent = new Agent({
   name: "Memory Agent",
   instructions: `You are a sophisticated memory management agent responsible for maintaining and organizing conversational memories. Your primary functions include:
 
@@ -39,5 +39,3 @@ Always be helpful in managing memories and ensure users can easily access their 
   tools: memoryTools,
   model: "gpt-4o-mini" // Using a cost-effective model for memory operations
 });
-
-export { memoryAgent };

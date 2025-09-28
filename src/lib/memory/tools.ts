@@ -1,61 +1,7 @@
-import { tool } from "@openai/agents";
+import { Agent, run, tool } from "@openai/agents";
 import { z } from "zod";
 import { Memory } from "./types";
-
-// In-memory storage for server-side use
-let memoryStore: Memory[] = [];
-
-// Helper function to read memories
-function readMemories(): Memory[] {
-  try {
-    if (typeof window !== 'undefined') {
-      // Client-side: use localStorage
-      const data = localStorage.getItem("conversation_memories");
-      if (!data) {
-        return [];
-      }
-      
-      const parsed = JSON.parse(data);
-      
-      // Validate that parsed data is an array
-      if (!Array.isArray(parsed)) {
-        console.warn("Memory storage contains invalid data, initializing empty array");
-        return [];
-      }
-      
-      // Validate each memory object
-      return parsed.filter((memory: any) => {
-        return memory && 
-               typeof memory.title === 'string' && 
-               typeof memory.content === 'string' && 
-               typeof memory.importance === 'number' &&
-               memory.importance >= 1 && 
-               memory.importance <= 10;
-      });
-    } else {
-      // Server-side: use in-memory store
-      return memoryStore;
-    }
-  } catch (error) {
-    console.error("Error reading memories:", error);
-    return [];
-  }
-}
-
-// Helper function to write memories
-function writeMemories(memories: Memory[]): void {
-  try {
-    if (typeof window !== 'undefined') {
-      // Client-side: use localStorage
-      localStorage.setItem("conversation_memories", JSON.stringify(memories, null, 2));
-    } else {
-      // Server-side: use in-memory store
-      memoryStore = memories;
-    }
-  } catch (error) {
-    console.error("Error writing memories:", error);
-  }
-}
+import { readMemories, writeMemories, logMemories, addMemory as addMemoryToSupabase, updateMemory as updateMemoryInSupabase } from "./supabase-storage";
 
 // Helper function to generate a unique ID
 function generateId(): string {
@@ -63,8 +9,8 @@ function generateId(): string {
 }
 
 // Function to add or update a memory
-function addOrUpdateMemory(title: string, content: string, importance: number) {
-  const memories = readMemories();
+async function addOrUpdateMemory(title: string, content: string, importance: number) {
+  const memories = await readMemories();
   
   // Check if title already exists
   const existingIndex = memories.findIndex(memory => 
@@ -80,6 +26,7 @@ function addOrUpdateMemory(title: string, content: string, importance: number) {
   if (existingIndex !== -1) {
     // Update existing memory
     memories[existingIndex] = memory;
+    await writeMemories(memories);
     return {
       success: true,
       message: `Memory "${title}" has been updated successfully`,
@@ -88,7 +35,7 @@ function addOrUpdateMemory(title: string, content: string, importance: number) {
   } else {
     // Add new memory
     memories.push(memory);
-    writeMemories(memories);
+    await writeMemories(memories);
     return {
       success: true,
       message: `Memory "${title}" has been added successfully`,
@@ -112,8 +59,8 @@ export const addMemory = tool({
 });
 
 // Function to get all memories
-function getAllMemoriesSorted(sortBy: string = "importance", order: string = "desc") {
-  const memories = readMemories();
+async function getAllMemoriesSorted(sortBy: string = "importance", order: string = "desc") {
+  const memories = await readMemories();
   
   const sortedMemories = [...memories].sort((a, b) => {
     let comparison = 0;
@@ -152,8 +99,8 @@ export const getAllMemories = tool({
 });
 
 // Function to search memories
-function searchMemoriesByQuery(query: string, minImportance?: number, maxResults: number = 10) {
-  const memories = readMemories();
+async function searchMemoriesByQuery(query: string, minImportance?: number, maxResults: number = 10) {
+  const memories = await readMemories();
   const searchQuery = query.toLowerCase();
   
   const filteredMemories = memories.filter(memory => {
@@ -190,8 +137,8 @@ export const searchMemories = tool({
 });
 
 // Function to update a memory
-function updateMemoryBySearch(searchQuery: string, newTitle?: string, newContent?: string, newImportance?: number) {
-  const memories = readMemories();
+async function updateMemoryBySearch(searchQuery: string, newTitle?: string, newContent?: string, newImportance?: number) {
+  const memories = await readMemories();
   const searchQueryLower = searchQuery.toLowerCase();
   
   const memoryIndex = memories.findIndex(memory => 
@@ -214,7 +161,7 @@ function updateMemoryBySearch(searchQuery: string, newTitle?: string, newContent
   };
   
   memories[memoryIndex] = updatedMemory;
-  writeMemories(memories);
+  await writeMemories(memories);
   
   return {
     success: true,
@@ -248,7 +195,7 @@ export const deleteMemory = tool({
   }),
   async execute({ searchQuery }) {
     try {
-      const memories = readMemories();
+      const memories = await readMemories();
       const searchQueryLower = searchQuery.toLowerCase();
       
       // Find the memory to delete
@@ -266,7 +213,7 @@ export const deleteMemory = tool({
       
       // Remove the memory
       const deletedMemory = memories.splice(memoryIndex, 1)[0];
-      writeMemories(memories);
+      await writeMemories(memories);
       
       return {
         success: true,
@@ -298,10 +245,10 @@ export const clearAllMemories = tool({
         };
       }
       
-      const memories = readMemories();
+      const memories = await readMemories();
       const count = memories.length;
       
-      writeMemories([]);
+      await writeMemories([]);
       
       return {
         success: true,
@@ -327,7 +274,7 @@ export const getMemoriesByImportance = tool({
   }),
   async execute({ minImportance, maxImportance, limit = 50 }) {
     try {
-      const memories = readMemories();
+      const memories = await readMemories();
       
       const filteredMemories = memories.filter(memory => 
         memory.importance >= minImportance && memory.importance <= maxImportance
@@ -353,96 +300,126 @@ export const getMemoriesByImportance = tool({
   }
 });
 
-// Function to process user messages and update memories
-function processUserMessageForMemory(userMessage: string, conversationContext: string = "") {
-  const memories = readMemories();
-  const message = userMessage.toLowerCase();
-  
-  // Look for patterns that indicate memory updates
-  const updatePatterns = [
-    /(?:actually|correction|wrong|mistake|not|don't|doesn't|didn't|wasn't|weren't|isn't|aren't)/,
-    /(?:now i|i now|changed my mind|i prefer|i like|i don't like|i hate)/,
-    /(?:remember|note|important|keep in mind|for future|my name is|i am|i work|i live|my favorite)/,
-    /(?:update|change|modify|instead of|rather than)/
-  ];
-  
-  let actionsTaken: string[] = [];
-  let updatedMemories: Memory[] = [];
-  let newMemories: Memory[] = [];
-  
-  const isUpdate = updatePatterns.some(pattern => pattern.test(message));
-  
-  if (isUpdate) {
-    // Try to find existing memories that might need updating
-    const relevantMemories = memories.filter(memory => {
-      const memoryText = `${memory.title} ${memory.content}`.toLowerCase();
-      const messageWords = message.split(/\s+/);
-      const memoryWords = memoryText.split(/\s+/);
-      const commonWords = messageWords.filter(word => 
-        word.length > 3 && memoryWords.includes(word)
-      );
-      return commonWords.length > 0;
+// Function to process user messages using LLM extraction and persist to Supabase
+async function processUserMessageForMemory(userMessage: string, conversationContext: string = "") {
+  try {
+    const extractionAgent = new Agent({
+      name: "Memory Extractor",
+      instructions: `
+You extract concise, storable memories from chat messages.
+
+Return ONLY JSON. Shape:
+{
+  "shouldSave": boolean,
+  "title": string,          // very short label
+  "content": string,        // 1-2 sentences summarizing the important fact
+  "importance": number      // integer 1-10
+}
+
+Rules:
+- Save only if the message provides a durable fact, preference, plan, or correction useful later.
+- Title must be specific and scannable (≤ 80 chars).
+- Content should be self-contained, without filler, no markdown.
+- Importance guide: 1-3 minor, 4-6 recurring preference/context, 7-8 important, 9-10 critical.
+      `,
+      model: "gpt-4o-mini",
     });
-    
-    if (relevantMemories.length > 0) {
-      for (const memory of relevantMemories) {
-        const memoryIndex = memories.findIndex(m => m.title === memory.title);
-        if (memoryIndex !== -1) {
-          const updatedContent = `${memory.content}\n\nUpdated: ${userMessage}`;
-          memories[memoryIndex] = {
-            ...memory,
-            content: updatedContent,
-            importance: Math.min(10, memory.importance + 1)
-          };
-          updatedMemories.push(memories[memoryIndex]);
-          actionsTaken.push(`Updated memory: "${memory.title}"`);
-        }
+
+    const input = `Message: ${userMessage}\nContext: ${conversationContext}`;
+    const rawResult = await run(extractionAgent, input);
+
+    // Normalize result to string
+    let textResult: string;
+    if (typeof rawResult === "string") {
+      textResult = rawResult;
+    } else if (rawResult && typeof rawResult === "object") {
+      const currentStep = (rawResult as any).state?._currentStep;
+      if (currentStep && currentStep.output) {
+        textResult = currentStep.output;
+      } else {
+        const messages = (rawResult as any).messages || [];
+        const lastMessage = messages[messages.length - 1];
+        textResult = lastMessage?.content ?? JSON.stringify(rawResult);
       }
     } else {
-      const newMemory: Memory = {
-        title: `User Update: ${new Date().toLocaleDateString()}`,
-        content: `User message: ${userMessage}\nContext: ${conversationContext}`,
-        importance: 6
-      };
-      memories.push(newMemory);
-      newMemories.push(newMemory);
-      actionsTaken.push(`Created new memory for user update`);
+      textResult = String(rawResult);
     }
-  } else {
-    // Check if this contains important information worth storing
-    const importantPatterns = [
-      /(?:my name is|i am|i work|i live|my favorite|i love|i hate|i prefer)/,
-      /(?:remember|important|note|keep in mind)/,
-      /(?:my (?:phone|email|address|birthday|age))/,
-      /(?:i have|i own|i drive|i use)/
-    ];
-    
-    const isImportant = importantPatterns.some(pattern => pattern.test(message));
-    
-    if (isImportant) {
-      const newMemory: Memory = {
-        title: `User Info: ${new Date().toLocaleDateString()}`,
-        content: `User message: ${userMessage}\nContext: ${conversationContext}`,
-        importance: 7
-      };
-      memories.push(newMemory);
-      newMemories.push(newMemory);
-      actionsTaken.push(`Created new memory for important information`);
+
+    // Attempt to parse JSON from the model output
+    let parsed: any = null;
+    try {
+      // Extract first JSON object in text
+      const match = textResult.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : JSON.parse(textResult);
+    } catch {
+      parsed = null;
     }
+
+    const ExtractionSchema = z.object({
+      shouldSave: z.boolean().default(false),
+      title: z.string().default("").transform((s) => s.trim()),
+      content: z.string().default("").transform((s) => s.trim()),
+      importance: z
+        .number()
+        .int()
+        .min(1)
+        .max(10)
+        .default(5),
+    });
+
+    const safe = (() => {
+      if (!parsed || typeof parsed !== "object") {
+        return { shouldSave: false, title: "", content: "", importance: 5 };
+      }
+      const result = ExtractionSchema.safeParse(parsed);
+      return result.success ? result.data : { shouldSave: false, title: "", content: "", importance: 5 };
+    })();
+
+    const actionsTaken: string[] = [];
+    const updatedMemories: Memory[] = [];
+    const newMemories: Memory[] = [];
+
+    if (safe.shouldSave && safe.title && safe.content) {
+      // Check for existing memory with same title (case-insensitive)
+      const existing = (await readMemories()).find(
+        (m) => m.title.toLowerCase() === safe.title.toLowerCase()
+      );
+
+      const memory: Memory = {
+        title: safe.title,
+        content: safe.content,
+        importance: Math.max(1, Math.min(10, Math.round(safe.importance))),
+      };
+
+      if (existing) {
+        await updateMemoryInSupabase(existing.title, memory);
+        updatedMemories.push({ ...existing, ...memory });
+        actionsTaken.push(`Updated memory: "${memory.title}"`);
+      } else {
+        await addMemoryToSupabase(memory);
+        newMemories.push(memory);
+        actionsTaken.push(`Added memory: "${memory.title}"`);
+      }
+    } else {
+      actionsTaken.push("No durable memory to save");
+    }
+
+    const totalMemories = (await readMemories()).length;
+
+    return {
+      success: true,
+      actionsTaken,
+      updatedMemories,
+      newMemories,
+      totalMemories,
+      extractorOutput: parsed ?? textResult,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Memory extraction failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+    };
   }
-  
-  // Save changes if any were made
-  if (updatedMemories.length > 0 || newMemories.length > 0) {
-    writeMemories(memories);
-  }
-  
-  return {
-    success: true,
-    actionsTaken,
-    updatedMemories,
-    newMemories,
-    totalMemories: memories.length
-  };
 }
 
 // Tool to automatically process user messages and update memories
