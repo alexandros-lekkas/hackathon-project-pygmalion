@@ -26,8 +26,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Set client state to prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Auto-scroll to bottom when new messages are added with smooth scrolling
   useEffect(() => {
@@ -49,6 +55,35 @@ export default function Chat() {
     const timeoutId = setTimeout(scrollToBottom, 100);
     return () => clearTimeout(timeoutId);
   }, [messages]);
+
+  // Generate TTS audio for text
+  const generateTTS = async (text: string): Promise<string | null> => {
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`TTS API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        return data.audioUrl;
+      } else {
+        console.error("TTS generation failed:", data.error);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error generating TTS:", error);
+      return null;
+    }
+  };
 
   // Play audio when assistant messages arrive
   const playAudio = (audioUrl: string) => {
@@ -118,14 +153,24 @@ export default function Chat() {
         role: "assistant",
         content: data.response,
         timestamp: new Date(),
-        audioUrl: data.audioUrl,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Play audio if available
-      if (data.audioUrl) {
-        playAudio(data.audioUrl);
+      // Generate TTS audio for the response
+      const audioUrl = await generateTTS(data.response);
+      if (audioUrl) {
+        // Update the message with the audio URL
+        setMessages((prev) => 
+          prev.map((msg) => 
+            msg.id === assistantMessage.id 
+              ? { ...msg, audioUrl } 
+              : msg
+          )
+        );
+        
+        // Play the audio
+        playAudio(audioUrl);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -180,7 +225,7 @@ export default function Chat() {
                     </p>
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString()}
+                        {isClient ? message.timestamp.toLocaleTimeString() : ""}
                       </p>
                       {message.role === "assistant" && message.audioUrl && (
                         <div className="flex items-center space-x-1">

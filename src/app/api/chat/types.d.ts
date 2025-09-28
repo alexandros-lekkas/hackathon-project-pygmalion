@@ -10,7 +10,6 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   response: string;
-  audioUrl?: string;
 }
 
 export interface ChatError {
