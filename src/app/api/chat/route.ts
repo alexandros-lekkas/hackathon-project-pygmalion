@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Agent, run } from '@openai/agents';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from "next/server";
+import { Agent, run } from "@openai/agents";
+import { z } from "zod";
 // Import the Maya system prompt
 const MAYA_SYSTEM = `
 # "Maya" — Armenian Girlfriend Persona (PG-13, Suggestive)
@@ -39,27 +39,32 @@ Boundaries
 
 // Request validation schema
 const ChatRequestSchema = z.object({
-  message: z.string().min(1, 'Message cannot be empty'),
-  history: z.array(z.object({
-    role: z.enum(['user', 'assistant']),
-    content: z.string()
-  })).optional().default([])
+  message: z.string().min(1, "Message cannot be empty"),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 // Response schema
 const ChatResponseSchema = z.object({
-  response: z.string()
+  response: z.string(),
 });
 
 // Create Maya agent with the system prompt
 const mayaAgent = new Agent({
-  name: 'Maya',
+  name: "Maya",
   instructions: MAYA_SYSTEM,
-  model: 'gpt-4o-mini', // Using a cost-effective model
+  model: "gpt-4o-mini", // Using a cost-effective model
   modelSettings: {
     temperature: 0.8, // Slightly creative for Maya's personality
     maxTokens: 1000,
-  }
+  },
 });
 
 export async function POST(request: NextRequest) {
@@ -71,49 +76,50 @@ export async function POST(request: NextRequest) {
     // Build conversation context for the agent
     const conversationHistory = [
       ...history,
-      { role: 'user' as const, content: message }
+      { role: "user" as const, content: message },
     ];
 
     // Convert to the format expected by the agent
-    const messages = conversationHistory.map(msg => ({
+    const messages = conversationHistory.map((msg) => ({
       role: msg.role,
-      content: msg.content
+      content: msg.content,
     }));
 
     // Run the agent with the conversation context
     const result = await run(mayaAgent, message, {
       context: {
-        history: conversationHistory
-      }
+        history: conversationHistory,
+      },
     });
 
     // Debug: log the result structure
-    console.log('Agent result:', result);
-    console.log('Result type:', typeof result);
+    console.log("Agent result:", result);
+    console.log("Result type:", typeof result);
 
     // Extract the response from the result object
     let response: string;
-    if (typeof result === 'string') {
+    if (typeof result === "string") {
       response = result;
-    } else if (result && typeof result === 'object') {
+    } else if (result && typeof result === "object") {
       // The response is in the _currentStep.output property
       const currentStep = (result as any).state?._currentStep;
-      console.log('Current step:', currentStep);
-      
+      console.log("Current step:", currentStep);
+
       if (currentStep && currentStep.output) {
         response = currentStep.output;
       } else {
         // Fallback: try other possible properties
         const messages = (result as any).messages || [];
         const lastMessage = messages[messages.length - 1];
-        
+
         if (lastMessage && lastMessage.content) {
           response = lastMessage.content;
         } else {
-          response = (result as any).text || 
-                     (result as any).content || 
-                     (result as any).message || 
-                     'Sorry, I could not generate a response.';
+          response =
+            (result as any).text ||
+            (result as any).content ||
+            (result as any).message ||
+            "Sorry, I could not generate a response.";
         }
       }
     } else {
@@ -124,21 +130,20 @@ export async function POST(request: NextRequest) {
     const validatedResponse = ChatResponseSchema.parse({ response });
 
     return NextResponse.json(validatedResponse);
-
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error("Chat API error:", error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request format', details: error.errors },
+        { error: "Invalid request format", details: error.errors },
         { status: 400 }
       );
     }
 
     // Handle other errors
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -146,8 +151,5 @@ export async function POST(request: NextRequest) {
 
 // Handle unsupported methods
 export async function GET() {
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  );
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
