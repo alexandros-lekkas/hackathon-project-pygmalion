@@ -1,12 +1,43 @@
 import { Memory } from './types';
+import { searchMemories as searchMemoriesInDB } from './supabase-search';
 
 /**
  * Search memories for relevant context based on a query
- * @param memories Array of memories to search through
+ * @param memories Array of memories to search through (for fallback)
  * @param query The user's query to find relevant memories for
  * @returns Most relevant memories, sorted by relevance
  */
-export function searchMemoriesByRelevance(
+export async function searchMemoriesByRelevance(
+  memories: Memory[],
+  query: string,
+  maxResults: number = 3
+): Promise<Memory[]> {
+  if (!query) {
+    return [];
+  }
+
+  try {
+    // First try database search for best results
+    const dbResults = await searchMemoriesInDB(query, maxResults);
+    
+    // If we got results from the database, return those
+    if (dbResults && dbResults.length > 0) {
+      return dbResults;
+    }
+    
+    // Fallback to in-memory search if DB search returns no results
+    return searchMemoriesInMemory(memories, query, maxResults);
+  } catch (error) {
+    console.error('Database search failed, falling back to in-memory search:', error);
+    return searchMemoriesInMemory(memories, query, maxResults);
+  }
+}
+
+/**
+ * Legacy in-memory search as fallback
+ * @private
+ */
+function searchMemoriesInMemory(
   memories: Memory[],
   query: string,
   maxResults: number = 3
